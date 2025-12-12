@@ -3,252 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak Biodata Peserta EBTAQ</title>
+    <title>Cetak Kartu Peserta (Hemat Kertas)</title>
     <style>
         /* ================================================= */
-        /* 1. Pengaturan Halaman Cetak (Print Styles) */
+        /* 1. Reset & Page Setup */
         /* ================================================= */
+        @page {
+            size: A4 portrait;
+            margin: 1cm; /* Margin kertas */
+        }
         body {
             font-family: 'Times New Roman', Times, serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
-        }
-        /* Kontainer Utama Dokumen (Meniru Kertas A4) */
-        .kartu-biodata {
-            background-color: white;
-            border: 1px solid #aaa;
-            width: 21cm; 
-            min-height: 29.7cm; 
-            margin: 20px auto;
-            padding: 1.5cm 2cm;
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-            box-sizing: border-box;
-            page-break-after: always;
-        }
-        
-        /* ================================================= */
-        /* 2. Layout dan Konten */
-        /* ================================================= */
-        .header {
-            text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 5px;
-            margin-bottom: 20px;
-        }
-        .header h2 {
-            margin: 0;
-            font-size: 14pt;
-        }
-        .header p {
-            margin: 2px 0 0;
-            font-size: 10pt;
+            background-color: #eee;
         }
 
-        .data-grid {
+        /* ================================================= */
+        /* 2. Container Halaman (Menampung 10 Kartu) */
+        /* ================================================= */
+        .page-container {
+            background-color: white;
+            width: 21cm;        /* Lebar A4 */
+            height: 29.7cm;     /* Tinggi A4 */
+            padding: 1cm;       /* Padding dalam agar tidak mepet tepi kertas */
+            margin: 20px auto;  /* Jarak antar halaman di tampilan layar */
+            box-sizing: border-box;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            
+            /* GRID SYSTEM: 2 Kolom x 5 Baris */
             display: grid;
-            grid-template-columns: 150px 1fr 100px; 
-            gap: 5px 20px;
-            align-items: start;
-            font-size: 12pt;
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: repeat(5, 1fr); 
+            gap: 10px; /* Jarak antar kartu */
+            
+            page-break-after: always; /* Memaksa printer pindah kertas setelah container ini habis */
         }
-        .label {
-            font-weight: bold;
-            grid-column: 1;
-        }
-        .value {
-            grid-column: 2;
-        }
-        .foto-container {
-            grid-column: 3;
-            grid-row: 1 / span 8;
-            text-align: center;
+
+        /* ================================================= */
+        /* 3. Desain Kartu Mini */
+        /* ================================================= */
+        .kartu-mini {
             border: 1px solid #000;
             padding: 5px;
+            display: flex; /* Flexbox untuk Data di Kiri, Foto di Kanan */
+            overflow: hidden;
+            font-size: 9pt; /* Font diperkecil agar muat */
         }
-        .foto-container img {
-            width: 100%; 
-            height: auto;
-            max-width: 90px;
-            display: block;
-            margin: 0 auto;
-        }
-        .foto-label {
-            font-size: 8pt;
-            margin-top: 5px;
-        }
-        .ttd-area {
-            margin-top: 50px;
+
+        /* Bagian Teks */
+        .info-area {
+            flex: 1; /* Mengambil sisa ruang */
             display: flex;
-            justify-content: flex-end;
-            font-size: 11pt;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .row-data {
+            display: flex;
+            margin-bottom: 2px;
+        }
+        .label {
+            width: 85px; /* Lebar kolom label */
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .separator {
+            width: 10px;
             text-align: center;
         }
-        .ttd-area div {
-            width: 40%;
+        .value {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Titik-titik jika teks kepanjangan */
         }
-        .ttd-placeholder {
-            border-bottom: 1px dashed #000;
-            height: 20px;
-            margin-top: 50px;
+
+        /* Bagian Foto */
+        .foto-area {
+            width: 3cm; /* Lebar area foto */
+            margin-left: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px dashed #ccc;
+        }
+        .foto-area img {
+            max-width: 100%;
+            max-height: 100%;
+            height: auto;
+            object-fit: contain;
         }
 
         /* ================================================= */
-        /* 3. Media Print (Kualitas Cetak) */
+        /* 4. Mode Cetak */
         /* ================================================= */
         @media print {
-            body {
-                background-color: white;
-                padding: 0;
-            }
-            .kartu-biodata {
-                box-shadow: none;
+            body { background-color: white; }
+            .page-container {
                 margin: 0;
+                box-shadow: none;
                 border: none;
-                min-height: auto;
+                height: 100vh; /* Pastikan full height */
             }
-            #loading {
-                display: none;
-            }
+            #loading { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <div id="loading" style="text-align: center; margin-top: 50px;">Memuat data dari Google Sheet. Mohon tunggu...</div>
-    <div id="container-biodata"></div>
+    <div id="loading" style="text-align: center; margin-top: 50px;">Memuat data...</div>
+    
+    <div id="main-output"></div>
 
     <script>
-        // ID Spreadsheet Anda
         const SHEET_ID = '1eIcvIgCLWG3F9jQdsw5XN9llOsK2PoYWKUg1qaQJyyA';
         const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Form Responses 1`; 
         
-        const container = document.getElementById('container-biodata');
+        const mainOutput = document.getElementById('main-output');
         const loading = document.getElementById('loading');
 
-        // 1. Fungsi Mengambil Data
+        // --- Helper: Direct Link Google Drive ---
+        function getDirectDriveUrl(url) {
+            if (!url) return '';
+            const matchId = url.match(/id=([a-zA-Z0-9_-]+)/);
+            if (matchId && matchId[1]) return `https://lh3.googleusercontent.com/d/${matchId[1]}`;
+            return url;
+        }
+
+        // --- Fetch Data ---
         async function fetchSheetData() {
             try {
                 const response = await fetch(SHEET_URL);
-                if (!response.ok) {
-                    throw new Error(`Gagal mengambil data. Status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error("Gagal ambil data");
                 const csvText = await response.text();
                 loading.style.display = 'none';
                 processCSV(csvText);
             } catch (error) {
-                loading.innerText = '‼️ Error: ' + error.message;
-                console.error(error);
+                loading.innerText = 'Error: ' + error.message;
             }
         }
 
-        // 2. Helper: Ubah URL Google Drive ke Direct Link
-        function getDirectDriveUrl(url) {
-            if (!url) return '';
-            // Mencari ID file dari pola "id=..."
-            const matchId = url.match(/id=([a-zA-Z0-9_-]+)/);
-            // Jika ID ditemukan, ubah ke format lh3.googleusercontent
-            if (matchId && matchId[1]) {
-                return `https://lh3.googleusercontent.com/d/${matchId[1]}`;
-            }
-            return url;
-        }
-
-        // 3. Fungsi Parse CSV
+        // --- Process CSV & Pagination Logic ---
         function processCSV(csvText) {
-            const rows = csvText.trim().split('\n').filter(row => row.trim().length > 0);
-            if (rows.length < 2) {
-                container.innerHTML = '<p style="text-align:center;">Data kosong.</p>';
-                return;
+            const rows = csvText.trim().split('\n').filter(r => r.trim().length > 0);
+            if (rows.length < 2) return;
+
+            const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const allParticipants = [];
+
+            // 1. Parsing semua data dulu ke dalam Array Object
+            for (let i = 1; i < rows.length; i++) {
+                const rowData = rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                let p = { 'NO': i + 1 };
+                rowData.forEach((val, idx) => {
+                    p[headers[idx]] = val ? val.trim().replace(/"/g, '') : '';
+                });
+                allParticipants.push(p);
             }
 
-            const headers = rows[0].split(',').map(header => header.trim().replace(/"/g, ''));
-            
-            for (let i = 1; i < rows.length; i++) {
-                const rowData = rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || []; 
-                let participant = {};
-                rowData.forEach((value, index) => {
-                    participant[headers[index]] = value ? value.trim().replace(/"/g, '') : '';
-                });
-                participant['NO'] = i + 1; 
-                createBiodataCard(participant);
+            // 2. Logic Pagination (Per 10 Item)
+            const ITEMS_PER_PAGE = 10;
+            let currentPageDiv = createNewPage();
+
+            allParticipants.forEach((data, index) => {
+                // Jika halaman sudah penuh (10 item), buat halaman baru
+                if (index > 0 && index % ITEMS_PER_PAGE === 0) {
+                    mainOutput.appendChild(currentPageDiv); // Simpan halaman lama
+                    currentPageDiv = createNewPage();       // Bikin halaman baru
+                }
+                
+                // Masukkan kartu ke halaman yang sedang aktif
+                const cardHTML = createCardHTML(data);
+                currentPageDiv.appendChild(cardHTML);
+            });
+
+            // Simpan halaman terakhir jika masih ada isinya
+            if (currentPageDiv.hasChildNodes()) {
+                mainOutput.appendChild(currentPageDiv);
             }
         }
 
-        // 4. Fungsi Render Kartu (HTML)
-        function createBiodataCard(data) {
-            const kartu = document.createElement('div');
-            kartu.className = 'kartu-biodata';
+        // --- Membuat Elemen Halaman Kertas A4 ---
+        function createNewPage() {
+            const div = document.createElement('div');
+            div.className = 'page-container';
+            return div;
+        }
+
+        // --- Membuat Elemen Kartu Mini (HTML) ---
+        function createCardHTML(data) {
+            const card = document.createElement('div');
+            card.className = 'kartu-mini';
 
             // Variabel Data
-            const NAMA = data['Nama Lengkap (Sesuai Akta)'] || '-';
+            const NAMA = (data['Nama Lengkap (Sesuai Akta)'] || '-').toUpperCase();
             const ABSEN = data['ID Pendaftaran'] || '-';
-            const LEMBAGA = data['Asal Lembaga / TPQ'] || '-';
-            const TEMPAT = data['Tempat Lahir'] || '';
-            const TGL = data['Tanggal Lahir'] || '';
-            const TTL_LENGKAP = (TEMPAT && TGL) ? `${TEMPAT}, ${TGL}` : '-';
-            const BIN = data['Nama Ayah'] || '-';
-            const BINTI = data['Nama Ibu'] || '-';
+            const LEMBAGA = (data['Asal Lembaga / TPQ'] || '-').toUpperCase();
+            const TTL = (data['Tempat Lahir'] || '') + ', ' + (data['Tanggal Lahir'] || '');
+            const BIN = (data['Nama Ayah'] || '-').toUpperCase();
             const JK = data['Jenis Kelamin'] || '-';
             
-            // LOGIKA FOTO BARU
-            const rawFotoUrl = data['Kirim Pas Foto Ukuran PostCard'] || '';
-            const FOTO_URL = getDirectDriveUrl(rawFotoUrl);
+            const rawFoto = data['Kirim Pas Foto Ukuran PostCard'] || '';
+            const FOTO_URL = getDirectDriveUrl(rawFoto);
 
-            // Header
-            kartu.innerHTML = `
-                <div class="header">
-                    <h2>KARTU BIODATA PESERTA EBTAQ</h2>
-                    <p>ASAL LEMBAGA: ${LEMBAGA.toUpperCase()}</p>
-                </div>
-            `;
-
-            // Data Grid
-            const grid = document.createElement('div');
-            grid.className = 'data-grid';
-            
-            const dataFields = [
-                { label: 'NO.', value: data['NO'] }, 
-                { label: 'NO. ABSEN', value: ABSEN }, 
-                { label: 'NAMA LENGKAP', value: NAMA.toUpperCase() }, 
-                { label: 'T.T.L.', value: TTL_LENGKAP }, 
-                { label: 'JENIS KELAMIN', value: JK }, 
-                { label: 'BIN', value: BIN.toUpperCase() }, 
-                { label: 'BINTI', value: BINTI.toUpperCase() }, 
-            ];
-
-            dataFields.forEach(field => {
-                grid.innerHTML += `<span class="label">${field.label}</span><span class="value">: ${field.value}</span>`;
-            });
-            
-            // Foto
-            grid.innerHTML += `
-                <div class="foto-container">
-                    <img src="${FOTO_URL}" alt="Foto Peserta" 
-                         onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'130\\'><rect width=\\'100\\'% height=\\'100\\'% fill=\\'#eee\\' stroke=\\'#aaa\\'/><text x=\\'50\\' y=\\'65\\' font-size=\\'10\\' text-anchor=\\'middle\\' fill=\\'#777\\'>FOTO GAGAL</text></svg>'"
-                    >
-                    <p class="foto-label">3x4</p>
-                </div>
-            `;
-
-            kartu.appendChild(grid);
-            
-            // Tanda Tangan
-            kartu.innerHTML += `
-                <div class="ttd-area">
-                    <div>
-                        <p>Demak, ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                        <p>Tanda Tangan Peserta</p>
-                        <div class="ttd-placeholder"></div>
-                        <p style="margin-top: 5px;">( ${NAMA.toUpperCase()} )</p>
+            // Template HTML Kartu
+            card.innerHTML = `
+                <div class="info-area">
+                    <div class="row-data">
+                        <span class="label">NO. ABSEN</span><span class="separator">:</span>
+                        <span class="value">${ABSEN}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">NAMA</span><span class="separator">:</span>
+                        <span class="value" style="font-weight:bold;">${NAMA}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">LEMBAGA</span><span class="separator">:</span>
+                        <span class="value">${LEMBAGA}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">TTL</span><span class="separator">:</span>
+                        <span class="value">${TTL}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">JENIS KELAMIN</span><span class="separator">:</span>
+                        <span class="value">${JK}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">BIN/BINTI</span><span class="separator">:</span>
+                        <span class="value">${BIN}</span>
                     </div>
                 </div>
+                <div class="foto-area">
+                     <img src="${FOTO_URL}" 
+                          onerror="this.style.display='none'; this.parentNode.innerText='FOTO N/A'"
+                     >
+                </div>
             `;
-
-            container.appendChild(kartu);
+            return card;
         }
 
-        // Jalankan Script
         fetchSheetData();
     </script>
 </body>
