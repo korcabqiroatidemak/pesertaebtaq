@@ -1,1 +1,246 @@
-<!DOCTYPE html> <html lang="id"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Cetak Kartu Peserta (Layout Baru)</title> <style> /* ================================================= */ /* 1. Reset & Page Setup */ /* ================================================= */ @page { size: A4 portrait; margin: 1cm; } body { font-family: 'Times New Roman', Times, serif; margin: 0; padding: 0; background-color: #eee; } /* ================================================= */ /* 2. Container Halaman (2x5 Grid) */ /* ================================================= */ .page-container { background-color: white; width: 21cm; height: 29.7cm; padding: 0.8cm; /* Padding sedikit dikurangi agar muat font 10pt */ margin: 20px auto; box-sizing: border-box; box-shadow: 0 0 5px rgba(0,0,0,0.2); display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, 1fr); gap: 10px; page-break-after: always; } /* ================================================= */ /* 3. Desain Kartu Mini (Revisi) */ /* ================================================= */ .kartu-mini { border: 1px solid #000; padding: 5px; display: flex; align-items: flex-start; /* Rata atas */ overflow: hidden; font-size: 10pt; /* FONT UKURAN 10 */ line-height: 1.2; } /* --- FOTO DI KIRI --- */ .foto-area { width: 3cm; /* Lebar KUNCI 3cm */ height: 4cm; /* Estimasi tinggi foto 3x4 */ flex-shrink: 0; /* PENTING: Agar foto TIDAK MENGECIL didorong teks */ margin-right: 8px; /* Jarak foto ke teks */ display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; background-color: #f9f9f9; } .foto-area img { width: 100%; height: 100%; object-fit: cover; /* Memenuhi kotak tanpa distorsi */ } /* --- TEKS DI KANAN --- */ .info-area { flex: 1; /* Mengambil sisa ruang */ display: flex; flex-direction: column; justify-content: flex-start; padding-top: 2px; } .row-data { display: flex; margin-bottom: 3px; } .label { width: 65px; /* Lebar label disesuaikan font 10 */ font-weight: bold; flex-shrink: 0; } .separator { width: 10px; text-align: center; flex-shrink: 0; } .value { /* Agar teks panjang turun ke bawah (Wrap) */ white-space: normal; word-wrap: break-word; } /* ================================================= */ /* 4. Mode Cetak */ /* ================================================= */ @media print { body { background-color: white; } .page-container { margin: 0; box-shadow: none; border: none; height: 100vh; } #loading { display: none; } } </style> </head> <body> <div id="loading" style="text-align: center; margin-top: 50px;">Memuat data...</div> <div id="main-output"></div> <script> const SHEET_ID = '1eIcvIgCLWG3F9jQdsw5XN9llOsK2PoYWKUg1qaQJyyA'; const SHEET_URL = https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Biodata Cek; const mainOutput = document.getElementById('main-output'); const loading = document.getElementById('loading'); function getDirectDriveUrl(url) { if (!url) return ''; const matchId = url.match(/id=([a-zA-Z0-9_-]+)/); if (matchId && matchId[1]) return https://lh3.googleusercontent.com/d/${matchId[1]}; return url; } async function fetchSheetData() { try { const response = await fetch(SHEET_URL); if (!response.ok) throw new Error("Gagal ambil data"); const csvText = await response.text(); loading.style.display = 'none'; processCSV(csvText); } catch (error) { loading.innerText = 'Error: ' + error.message; } } function processCSV(csvText) { const rows = csvText.trim().split('\n').filter(r => r.trim().length > 0); if (rows.length < 2) return; const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, '')); const allParticipants = []; for (let i = 1; i < rows.length; i++) { const rowData = rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || []; let p = { 'NO': i + 1 }; rowData.forEach((val, idx) => { p[headers[idx]] = val ? val.trim().replace(/"/g, '') : ''; }); allParticipants.push(p); } const ITEMS_PER_PAGE = 10; let currentPageDiv = createNewPage(); allParticipants.forEach((data, index) => { if (index > 0 && index % ITEMS_PER_PAGE === 0) { mainOutput.appendChild(currentPageDiv); currentPageDiv = createNewPage(); } currentPageDiv.appendChild(createCardHTML(data)); }); if (currentPageDiv.hasChildNodes()) { mainOutput.appendChild(currentPageDiv); } } function createNewPage() { const div = document.createElement('div'); div.className = 'page-container'; return div; } function createCardHTML(data) { const card = document.createElement('div'); card.className = 'kartu-mini'; // --- PERSIAPAN DATA --- const ABSEN = data['ID Pendaftaran'] || '-'; const NAMA = (data['Nama Lengkap (Sesuai Akta)'] || '-').toUpperCase(); const LEMBAGA = (data['Asal Lembaga / TPQ'] || '-').toUpperCase(); const TTL = (data['Tempat Lahir'] || '') + ', ' + (data['Tanggal Lahir'] || ''); const JK = data['Jenis Kelamin'] || '-'; const BIN = (data['Nama Ayah'] || '-').toUpperCase(); const BINTI = (data['Nama Ibu'] || '-').toUpperCase(); // Data Ibu const rawFoto = data['Kirim Pas Foto Ukuran PostCard'] || ''; const FOTO_URL = getDirectDriveUrl(rawFoto); // --- STRUKTUR HTML BARU (Foto Kiri, Identitas Kanan) --- card.innerHTML = <div class="foto-area"> <img src="${FOTO_URL}" onerror="this.style.display='none'; this.parentNode.innerText='NO FOTO'" > </div> <div class="info-area"> <div class="row-data"> <span class="label">ID</span><span class="separator">:</span> <span class="value">${ABSEN}</span> </div> <div class="row-data"> <span class="label">NAMA</span><span class="separator">:</span> <span class="value" style="font-weight:bold;">${NAMA}</span> </div> <div class="row-data"> <span class="label">LEMB.</span><span class="separator">:</span> <span class="value">${LEMBAGA}</span> </div> <div class="row-data"> <span class="label">TTL</span><span class="separator">:</span> <span class="value">${TTL}</span> </div> <div class="row-data"> <span class="label">JK</span><span class="separator">:</span> <span class="value">${JK}</span> </div> <div class="row-data"> <span class="label">BIN</span><span class="separator">:</span> <span class="value">${BIN}</span> </div> <div class="row-data"> <span class="label">BINTI</span><span class="separator">:</span> <span class="value">${BINTI}</span> </div> </div> ; return card; } fetchSheetData(); </script> </body> </html>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak Kartu Peserta (Layout Baru)</title>
+    <style>
+        /* ================================================= */
+        /* 1. Reset & Page Setup */
+        /* ================================================= */
+        @page {
+            size: A4 portrait;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            padding: 0;
+            background-color: #eee;
+        }
+
+        /* ================================================= */
+        /* 2. Container Halaman (2x5 Grid) */
+        /* ================================================= */
+        .page-container {
+            background-color: white;
+            width: 21cm;
+            height: 29.7cm;
+            padding: 0.8cm; /* Padding sedikit dikurangi agar muat font 10pt */
+            margin: 20px auto;
+            box-sizing: border-box;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            
+            display: grid;
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: repeat(5, 1fr); 
+            gap: 10px;
+            
+            page-break-after: always;
+        }
+
+        /* ================================================= */
+        /* 3. Desain Kartu Mini (Revisi) */
+        /* ================================================= */
+        .kartu-mini {
+            border: 1px solid #000;
+            padding: 5px;
+            display: flex;
+            align-items: flex-start; /* Rata atas */
+            overflow: hidden;
+            font-size: 10pt; /* FONT UKURAN 10 */
+            line-height: 1.2;
+        }
+
+        /* --- FOTO DI KIRI --- */
+        .foto-area {
+            width: 3cm;         /* Lebar KUNCI 3cm */
+            height: 4cm;        /* Estimasi tinggi foto 3x4 */
+            flex-shrink: 0;     /* PENTING: Agar foto TIDAK MENGECIL didorong teks */
+            margin-right: 8px;  /* Jarak foto ke teks */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .foto-area img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Memenuhi kotak tanpa distorsi */
+        }
+
+        /* --- TEKS DI KANAN --- */
+        .info-area {
+            flex: 1; /* Mengambil sisa ruang */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 2px;
+        }
+
+        .row-data {
+            display: flex;
+            margin-bottom: 3px;
+        }
+        .label {
+            width: 65px; /* Lebar label disesuaikan font 10 */
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .separator {
+            width: 10px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .value {
+            /* Agar teks panjang turun ke bawah (Wrap) */
+            white-space: normal; 
+            word-wrap: break-word;
+        }
+
+        /* ================================================= */
+        /* 4. Mode Cetak */
+        /* ================================================= */
+        @media print {
+            body { background-color: white; }
+            .page-container {
+                margin: 0;
+                box-shadow: none;
+                border: none;
+                height: 100vh;
+            }
+            #loading { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading" style="text-align: center; margin-top: 50px;">Memuat data...</div>
+    <div id="main-output"></div>
+
+    <script>
+        const SHEET_ID = '1eIcvIgCLWG3F9jQdsw5XN9llOsK2PoYWKUg1qaQJyyA';
+        const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Biodata Cek`; 
+        
+        const mainOutput = document.getElementById('main-output');
+        const loading = document.getElementById('loading');
+
+        function getDirectDriveUrl(url) {
+            if (!url) return '';
+            const matchId = url.match(/id=([a-zA-Z0-9_-]+)/);
+            if (matchId && matchId[1]) return `https://lh3.googleusercontent.com/d/${matchId[1]}`;
+            return url;
+        }
+
+        async function fetchSheetData() {
+            try {
+                const response = await fetch(SHEET_URL);
+                if (!response.ok) throw new Error("Gagal ambil data");
+                const csvText = await response.text();
+                loading.style.display = 'none';
+                processCSV(csvText);
+            } catch (error) {
+                loading.innerText = 'Error: ' + error.message;
+            }
+        }
+
+        function processCSV(csvText) {
+            const rows = csvText.trim().split('\n').filter(r => r.trim().length > 0);
+            if (rows.length < 2) return;
+
+            const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const allParticipants = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const rowData = rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                let p = { 'NO': i + 1 };
+                rowData.forEach((val, idx) => {
+                    p[headers[idx]] = val ? val.trim().replace(/"/g, '') : '';
+                });
+                allParticipants.push(p);
+            }
+
+            const ITEMS_PER_PAGE = 10;
+            let currentPageDiv = createNewPage();
+
+            allParticipants.forEach((data, index) => {
+                if (index > 0 && index % ITEMS_PER_PAGE === 0) {
+                    mainOutput.appendChild(currentPageDiv);
+                    currentPageDiv = createNewPage();
+                }
+                currentPageDiv.appendChild(createCardHTML(data));
+            });
+
+            if (currentPageDiv.hasChildNodes()) {
+                mainOutput.appendChild(currentPageDiv);
+            }
+        }
+
+        function createNewPage() {
+            const div = document.createElement('div');
+            div.className = 'page-container';
+            return div;
+        }
+
+        function createCardHTML(data) {
+            const card = document.createElement('div');
+            card.className = 'kartu-mini';
+
+            // --- PERSIAPAN DATA ---
+            const ABSEN = data['ID Pendaftaran'] || '-';
+            const NAMA = (data['Nama Lengkap (Sesuai Akta)'] || '-').toUpperCase();
+            const LEMBAGA = (data['Asal Lembaga / TPQ'] || '-').toUpperCase();
+            const TTL = (data['Tempat Lahir'] || '') + ', ' + (data['Tanggal Lahir'] || '');
+            const JK = data['Jenis Kelamin'] || '-';
+            const BIN = (data['Nama Ayah'] || '-').toUpperCase();
+            const BINTI = (data['Nama Ibu'] || '-').toUpperCase(); // Data Ibu
+            
+            const rawFoto = data['Kirim Pas Foto Ukuran PostCard'] || '';
+            const FOTO_URL = getDirectDriveUrl(rawFoto);
+
+            // --- STRUKTUR HTML BARU (Foto Kiri, Identitas Kanan) ---
+            card.innerHTML = `
+                <div class="foto-area">
+                     <img src="${FOTO_URL}" 
+                          onerror="this.style.display='none'; this.parentNode.innerText='NO FOTO'"
+                     >
+                </div>
+                <div class="info-area">
+                    <div class="row-data">
+                        <span class="label">ID</span><span class="separator">:</span>
+                        <span class="value">${ABSEN}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">NAMA</span><span class="separator">:</span>
+                        <span class="value" style="font-weight:bold;">${NAMA}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">LEMB.</span><span class="separator">:</span>
+                        <span class="value">${LEMBAGA}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">TTL</span><span class="separator">:</span>
+                        <span class="value">${TTL}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">JK</span><span class="separator">:</span>
+                        <span class="value">${JK}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">BIN</span><span class="separator">:</span>
+                        <span class="value">${BIN}</span>
+                    </div>
+                    <div class="row-data">
+                        <span class="label">BINTI</span><span class="separator">:</span>
+                        <span class="value">${BINTI}</span>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        fetchSheetData();
+    </script>
+</body>
+</html>
