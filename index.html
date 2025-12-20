@@ -1,247 +1,282 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak Kartu Peserta (Layout Baru)</title>
-    <style>
-        /* ================================================= */
-        /* 1. Reset & Page Setup */
-        /* ================================================= */
-        @page {
-            size: A4 portrait;
-            margin: 1cm;
-        }
-        body {
-            font-family: 'Times New Roman', Times, serif;
-            margin: 0;
-            padding: 0;
-            background-color: #eee;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODE X – Cetak Kartu Peserta</title>
 
-        /* ================================================= */
-        /* 2. Container Halaman (2x5 Grid) */
-        /* ================================================= */
-        .page-container {
-            background-color: white;
-            width: 21cm;
-            height: 29.7cm;
-            padding: 0.8cm; /* Padding sedikit dikurangi agar muat font 10pt */
-            margin: 20px auto;
-            box-sizing: border-box;
-            box-shadow: 0 0 5px rgba(0,0,0,0.2);
-            
-            display: grid;
-            grid-template-columns: 1fr 1fr; 
-            grid-template-rows: repeat(5, 1fr); 
-            gap: 10px;
-            
-            page-break-after: always;
-        }
+<style>
+/* ================= PAGE SETUP ================= */
+@page{
+    size: 215mm 330mm; /* F4 */
+    margin: 10mm;
+}
+body{
+    font-family:"Times New Roman", Times, serif;
+    background:#eee;
+    margin:0;
+}
 
-        /* ================================================= */
-        /* 3. Desain Kartu Mini (Revisi) */
-        /* ================================================= */
-        .kartu-mini {
-            border: 1px solid #000;
-            padding: 5px;
-            display: flex;
-            align-items: flex-start; /* Rata atas */
-            overflow: hidden;
-            font-size: 10pt; /* FONT UKURAN 10 */
-            line-height: 1.2;
-        }
+/* ================= PANEL KONTROL ================= */
+#control-panel{
+    background:#fff;
+    padding:12px;
+    margin:10px auto;
+    max-width:900px;
+    border:1px solid #ccc;
+}
+#shift-container{
+    margin-top:8px;
+    border:1px solid #ddd;
+    padding:10px;
+    display:grid;
+    grid-template-rows:repeat(3,auto); /* 3 BARIS */
+    grid-auto-flow:column;
+    gap:8px 30px;
+    overflow-x:auto;
+    max-height:90px;
+}
+#control-panel button{
+    margin-top:10px;
+    padding:6px 14px;
+}
 
-        /* --- FOTO DI KIRI --- */
-        .foto-area {
-            width: 3cm;         /* Lebar KUNCI 3cm */
-            height: 4cm;        /* Estimasi tinggi foto 3x4 */
-            flex-shrink: 0;     /* PENTING: Agar foto TIDAK MENGECIL didorong teks */
-            margin-right: 8px;  /* Jarak foto ke teks */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #ccc;
-            background-color: #f9f9f9;
-        }
-        .foto-area img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Memenuhi kotak tanpa distorsi */
-        }
+/* ================= PAGE CONTAINER ================= */
+.page-container{
+    width:215mm;
+    height:330mm;
+    background:#fff;
+    margin:10px auto;
+    box-sizing:border-box;
+    page-break-after:always;
+    padding:6mm;
+    display:flex;
+    flex-direction:column;
+}
 
-        /* --- TEKS DI KANAN --- */
-        .info-area {
-            flex: 1; /* Mengambil sisa ruang */
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            padding-top: 2px;
-        }
+/* ================= HEADER ================= */
+.header{
+    text-align:center;
+    border-bottom:2px solid #000;
+    padding-bottom:6px;
+    margin-bottom:6px;
+}
+.header h2{
+    margin:0;
+    font-size:14pt;
+}
+.header .sub{
+    font-size:11pt;
+}
 
-        .row-data {
-            display: flex;
-            margin-bottom: 3px;
-        }
-        .label {
-            width: 65px; /* Lebar label disesuaikan font 10 */
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-        .separator {
-            width: 10px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        .value {
-            /* Agar teks panjang turun ke bawah (Wrap) */
-            white-space: normal; 
-            word-wrap: break-word;
-        }
+/* ================= GRID ================= */
+.card-grid{
+    flex:1;
+    display:grid;
+    gap:6px;
+}
+.first-page .card-grid{
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:repeat(5,1fr); /* 2×5 */
+}
+.next-page .card-grid{
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:repeat(6,1fr); /* 2×6 */
+}
 
-        /* ================================================= */
-        /* 4. Mode Cetak */
-        /* ================================================= */
-        @media print {
-            body { background-color: white; }
-            .page-container {
-                margin: 0;
-                box-shadow: none;
-                border: none;
-                height: 100vh;
-            }
-            #loading { display: none; }
-        }
-    </style>
+/* ================= CARD ================= */
+.kartu{
+    border:1px solid #000;
+    padding:5px;
+    font-size:10pt;
+    display:flex;
+}
+.foto{
+    width:3cm;
+    height:4cm;
+    margin-right:6px;
+    border:1px solid #ccc;
+    flex-shrink:0;
+}
+.foto img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+.info{
+    flex:1;
+}
+.row{
+    display:flex;
+    margin-bottom:2px;
+}
+.label{
+    width:65px;
+    font-weight:bold;
+}
+.sep{
+    width:10px;
+}
+.value{
+    flex:1;
+    word-wrap:break-word;
+}
+
+/* ================= FOOTER ================= */
+.next-page{
+    position:relative;
+}
+.footer-info{
+    position:absolute;
+    bottom:6mm;
+    right:8mm;
+    font-size:9pt;
+    color:#555;
+}
+
+/* ================= PRINT ================= */
+@media print{
+    body{background:#fff;}
+    #control-panel{display:none;}
+}
+</style>
 </head>
+
 <body>
 
-    <div id="loading" style="text-align: center; margin-top: 50px;">Memuat data...</div>
-    <div id="main-output"></div>
+<!-- ============ PANEL KONTROL ============ -->
+<div id="control-panel">
+    <b>Pilih Gelombang – Shift</b>
+    <div id="shift-container"></div>
+    <button onclick="generate()">Generate</button>
+</div>
 
-    <script>
-        const SHEET_ID = '1eIcvIgCLWG3F9jQdsw5XN9llOsK2PoYWKUg1qaQJyyA';
-        const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Biodata Cek`; 
-        
-        const mainOutput = document.getElementById('main-output');
-        const loading = document.getElementById('loading');
+<div id="output"></div>
 
-        function getDirectDriveUrl(url) {
-            if (!url) return '';
-            const matchId = url.match(/id=([a-zA-Z0-9_-]+)/);
-            if (matchId && matchId[1]) return `https://lh3.googleusercontent.com/d/${matchId[1]}`;
-            return url;
+<script>
+/* ================= DATA SOURCE ================= */
+const SHEET_ID = '1eIcvIgCLWG3F9jQdsw5XN9llOsK2PoYWKUg1qaQJyyA';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Biodata Cek`;
+
+let rawData=[];
+
+/* ================= FETCH ================= */
+fetch(SHEET_URL)
+.then(r=>r.text())
+.then(csv=>{
+    const rows=csv.trim().split('\n');
+    const headers=rows[0].split(',').map(h=>h.replace(/"/g,''));
+    for(let i=1;i<rows.length;i++){
+        const cols=rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+        let obj={};
+        headers.forEach((h,idx)=>{
+            obj[h]=cols[idx]?cols[idx].replace(/"/g,''):'';
+        });
+        rawData.push(obj);
+    }
+    buildShiftPanel();
+});
+
+/* ================= PANEL ================= */
+function buildShiftPanel(){
+    const box=document.getElementById('shift-container');
+    const set=new Set();
+    rawData.forEach(d=>{
+        if(d.Gelombang && d.Shift){
+            set.add(`${d.Gelombang}-${d.Shift}`);
         }
+    });
+    [...set].sort().forEach(v=>{
+        const lbl=document.createElement('label');
+        lbl.innerHTML=`<input type="checkbox" value="${v}"> Gel ${v.replace('-', ' - Shift ')}`;
+        box.appendChild(lbl);
+    });
+}
 
-        async function fetchSheetData() {
-            try {
-                const response = await fetch(SHEET_URL);
-                if (!response.ok) throw new Error("Gagal ambil data");
-                const csvText = await response.text();
-                loading.style.display = 'none';
-                processCSV(csvText);
-            } catch (error) {
-                loading.innerText = 'Error: ' + error.message;
-            }
+/* ================= GENERATE ================= */
+function generate(){
+    const output=document.getElementById('output');
+    output.innerHTML='';
+
+    document.querySelectorAll('#shift-container input:checked')
+    .forEach(cb=>{
+        const [gel,shift]=cb.value.split('-');
+        const data=rawData
+            .filter(d=>d.Gelombang==gel && d.Shift==shift)
+            .sort((a,b)=>Number(a.Nomor)-Number(b.Nomor));
+
+        renderShift(output,data,gel,shift);
+    });
+}
+
+/* ================= RENDER SHIFT ================= */
+function renderShift(output,data,gel,shift){
+    if(!data.length) return;
+
+    let page=createFirstPage(gel,shift);
+    let count=0;
+
+    data.forEach((d,i)=>{
+        const limit = page.classList.contains('first-page') ? 10 : 12;
+        if(count===limit){
+            output.appendChild(page);
+            page=createNextPage(gel,shift);
+            count=0;
         }
+        page.querySelector('.card-grid').appendChild(createCard(d));
+        count++;
+    });
+    output.appendChild(page);
+}
 
-        function processCSV(csvText) {
-            const rows = csvText.trim().split('\n').filter(r => r.trim().length > 0);
-            if (rows.length < 2) return;
+/* ================= PAGE ================= */
+function createFirstPage(gel,shift){
+    const div=document.createElement('div');
+    div.className='page-container first-page';
+    div.innerHTML=`
+        <div class="header">
+            <h2>DAFTAR PESERTA</h2>
+            <div class="sub">Rojab 1447 | Gel ${gel} - Shift ${shift}</div>
+        </div>
+        <div class="card-grid"></div>
+    `;
+    return div;
+}
 
-            const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            const allParticipants = [];
+function createNextPage(gel,shift){
+    const div=document.createElement('div');
+    div.className='page-container next-page';
+    div.innerHTML=`
+        <div class="card-grid"></div>
+        <div class="footer-info">Rojab 1447 | Gel ${gel} - Shift ${shift}</div>
+    `;
+    return div;
+}
 
-            for (let i = 1; i < rows.length; i++) {
-                const rowData = rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
-                let p = { 'NO': i + 1 };
-                rowData.forEach((val, idx) => {
-                    p[headers[idx]] = val ? val.trim().replace(/"/g, '') : '';
-                });
-                allParticipants.push(p);
-            }
+/* ================= CARD ================= */
+function createCard(d){
+    const c=document.createElement('div');
+    c.className='kartu';
 
-            const ITEMS_PER_PAGE = 10;
-            let currentPageDiv = createNewPage();
+    const no=String(d.Nomor||'').padStart(3,'0');
+    const foto=d['Kirim Pas Foto Ukuran PostCard']||'';
 
-            allParticipants.forEach((data, index) => {
-                if (index > 0 && index % ITEMS_PER_PAGE === 0) {
-                    mainOutput.appendChild(currentPageDiv);
-                    currentPageDiv = createNewPage();
-                }
-                currentPageDiv.appendChild(createCardHTML(data));
-            });
+    c.innerHTML=`
+        <div class="foto">
+            <img src="${foto}" onerror="this.style.display='none'">
+        </div>
+        <div class="info">
+            <div class="row"><span class="label">Nomor</span><span class="sep">:</span><span class="value">${no}</span></div>
+            <div class="row"><span class="label">Nama</span><span class="sep">:</span><span class="value"><b>${(d['Nama Lengkap (Sesuai Akta)']||'').toUpperCase()}</b></span></div>
+            <div class="row"><span class="label">TTL</span><span class="sep">:</span><span class="value">${d['Tempat Lahir']||''}, ${d['Tanggal Lahir']||''}</span></div>
+            <div class="row"><span class="label">JK</span><span class="sep">:</span><span class="value">${d['Jenis Kelamin']||''}</span></div>
+            <div class="row"><span class="label">BIN</span><span class="sep">:</span><span class="value">${(d['Nama Ayah']||'').toUpperCase()}</span></div>
+            <div class="row"><span class="label">BINTI</span><span class="sep">:</span><span class="value">${(d['Nama Ibu']||'').toUpperCase()}</span></div>
+        </div>
+    `;
+    return c;
+}
+</script>
 
-            if (currentPageDiv.hasChildNodes()) {
-                mainOutput.appendChild(currentPageDiv);
-            }
-        }
-
-        function createNewPage() {
-            const div = document.createElement('div');
-            div.className = 'page-container';
-            return div;
-        }
-
-        function createCardHTML(data) {
-            const card = document.createElement('div');
-            card.className = 'kartu-mini';
-
-            // --- PERSIAPAN DATA ---
-            const ABSEN = data['ID Pendaftaran'] || '-';
-            const NAMA = (data['Nama Lengkap (Sesuai Akta)'] || '-').toUpperCase();
-            const LEMBAGA = (data['Asal Lembaga / TPQ'] || '-').toUpperCase();
-            const TTL = (data['Tempat Lahir'] || '') + ', ' + (data['Tanggal Lahir'] || '');
-            const JK = data['Jenis Kelamin'] || '-';
-            const BIN = (data['Nama Ayah'] || '-').toUpperCase();
-            const BINTI = (data['Nama Ibu'] || '-').toUpperCase(); // Data Ibu
-            
-            const rawFoto = data['Kirim Pas Foto Ukuran PostCard'] || '';
-            const FOTO_URL = getDirectDriveUrl(rawFoto);
-
-            // --- STRUKTUR HTML BARU (Foto Kiri, Identitas Kanan) ---
-            card.innerHTML = `
-                <div class="foto-area">
-                     <img src="${FOTO_URL}" 
-                          onerror="this.style.display='none'; this.parentNode.innerText='NO FOTO'"
-                     >
-                </div>
-                <div class="info-area">
-                    <div class="row-data">
-                        <span class="label">ID</span><span class="separator">:</span>
-                        <span class="value">${ABSEN}</span>
-                    </div>
-                    <div class="row-data">
-                        <span class="label">NAMA</span><span class="separator">:</span>
-                        <span class="value" style="font-weight:bold;">${NAMA}</span>
-                    </div>
-                    <div class="row-data">
-                        <span class="label">LEMB.</span><span class="separator">:</span>
-                        <span class="value">${LEMBAGA}</span>
-                    </div>
-                    <div class="row-data">
-                        <span class="label">TTL</span><span class="separator">:</span>
-                        <span class="value">${TTL}</span>
-                    </div>
-                    <div class="row-data">
-                        <span class="label">JK</span><span class="separator">:</span>
-                        <span class="value">${JK}</span>
-                    </div>
-                    <div class="row-data">
-                        <span class="label">BIN</span><span class="separator">:</span>
-                        <span class="value">${BIN}</span>
-                    </div>
-                    <div class="row-data">
-                        <span class="label">BINTI</span><span class="separator">:</span>
-                        <span class="value">${BINTI}</span>
-                    </div>
-                </div>
-            `;
-            return card;
-        }
-
-        fetchSheetData();
-    </script>
 </body>
 </html>
-
