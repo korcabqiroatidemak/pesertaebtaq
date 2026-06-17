@@ -26,7 +26,7 @@
             background-color: white;
             width: 21cm;
             height: 29.7cm;
-            padding: 0.8cm; /* Padding sedikit dikurangi agar muat font 10pt */
+            padding: 0.8cm;
             margin: 20px auto;
             box-sizing: border-box;
             box-shadow: 0 0 5px rgba(0,0,0,0.2);
@@ -46,18 +46,18 @@
             border: 1px solid #000;
             padding: 5px;
             display: flex;
-            align-items: flex-start; /* Rata atas */
+            align-items: flex-start;
             overflow: hidden;
-            font-size: 10pt; /* FONT UKURAN 10 */
+            font-size: 10pt;
             line-height: 1.2;
         }
 
         /* --- FOTO DI KIRI --- */
         .foto-area {
-            width: 3cm;         /* Lebar KUNCI 3cm */
-            height: 4cm;        /* Estimasi tinggi foto 3x4 */
-            flex-shrink: 0;     /* PENTING: Agar foto TIDAK MENGECIL didorong teks */
-            margin-right: 8px;  /* Jarak foto ke teks */
+            width: 3cm;         
+            height: 4cm;        
+            flex-shrink: 0;     
+            margin-right: 8px;  
             display: flex;
             align-items: center;
             justify-content: center;
@@ -67,12 +67,12 @@
         .foto-area img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Memenuhi kotak tanpa distorsi */
+            object-fit: cover;
         }
 
         /* --- TEKS DI KANAN --- */
         .info-area {
-            flex: 1; /* Mengambil sisa ruang */
+            flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -84,7 +84,7 @@
             margin-bottom: 3px;
         }
         .label {
-            width: 65px; /* Lebar label disesuaikan font 10 */
+            width: 65px;
             font-weight: bold;
             flex-shrink: 0;
         }
@@ -94,7 +94,6 @@
             flex-shrink: 0;
         }
         .value {
-            /* Agar teks panjang turun ke bawah (Wrap) */
             white-space: normal; 
             word-wrap: break-word;
         }
@@ -120,24 +119,33 @@
     <div id="main-output"></div>
 
     <script>
-        const SHEET_ID = '1eIcvIgCLWG3F9jQdsw5XN9llOsK2PoYWKUg1qaQJyyA';
-        const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Biodata Cek`; 
+        // Menggunakan ID baru dan mengikat langsung ke GID spesifik
+        const SHEET_ID = '180oIFF3WRaijxLn_LZiu12f0m5mTxZ8DY3w4t1Jd5FY';
+        const SHEET_GID = '644681055';
+        const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`; 
         
         const mainOutput = document.getElementById('main-output');
         const loading = document.getElementById('loading');
 
         function getDirectDriveUrl(url) {
             if (!url) return '';
-            const matchId = url.match(/id=([a-zA-Z0-9_-]+)/);
-            if (matchId && matchId[1]) return `https://lh3.googleusercontent.com/d/${matchId[1]}`;
+            // Ekstrak ID dari URL format standar maupun format AppSheet (open?id=)
+            const matchId = url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (matchId && matchId[1]) return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w400`;
             return url;
         }
 
         async function fetchSheetData() {
             try {
                 const response = await fetch(SHEET_URL);
-                if (!response.ok) throw new Error("Gagal ambil data");
+                if (!response.ok) throw new Error("Gagal ambil data. Pastikan akses Google Sheet diatur ke 'Siapa saja yang memiliki link'");
                 const csvText = await response.text();
+                
+                // Peringatan jika data yang ditarik berupa HTML (tanda sheet dikunci)
+                if (csvText.trim().startsWith("<!DOCTYPE html>")) {
+                    throw new Error("Akses ditolak. Silakan ubah izin berbagi Google Sheet menjadi Publik.");
+                }
+
                 loading.style.display = 'none';
                 processCSV(csvText);
             } catch (error) {
@@ -147,7 +155,10 @@
 
         function processCSV(csvText) {
             const rows = csvText.trim().split('\n').filter(r => r.trim().length > 0);
-            if (rows.length < 2) return;
+            if (rows.length < 2) {
+                mainOutput.innerHTML = '<div style="text-align:center; margin-top:50px;">Belum ada data di sheet BIO.</div>';
+                return;
+            }
 
             const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
             const allParticipants = [];
@@ -187,19 +198,19 @@
             const card = document.createElement('div');
             card.className = 'kartu-mini';
 
-            // --- PERSIAPAN DATA ---
-            const ABSEN = data['ID Pendaftaran'] || '-';
-            const NAMA = (data['Nama Lengkap (Sesuai Akta)'] || '-').toUpperCase();
-            const LEMBAGA = (data['Asal Lembaga / TPQ'] || '-').toUpperCase();
-            const TTL = (data['Tempat Lahir'] || '') + ', ' + (data['Tanggal Lahir'] || '');
-            const JK = data['Jenis Kelamin'] || '-';
-            const BIN = (data['Nama Ayah'] || '-').toUpperCase();
-            const BINTI = (data['Nama Ibu'] || '-').toUpperCase(); // Data Ibu
+            // --- PEMETAAN DATA (Disinkronkan dengan header baru) ---
+            const ABSEN = data['ID Peserta'] || '-';
+            const NAMA = (data['Nama Lengkap'] || '-').toUpperCase();
+            const LEMBAGA = (data['Asal Lembaga'] || '-').toUpperCase();
+            const TTL = (data['TEMPAT LAHIR'] || '') + ', ' + (data['TANGGAL LAHIR'] || '');
+            const JK = data['L/P'] || '-';
+            const BIN = (data['BIN'] || '-').toUpperCase();
+            const BINTI = (data['BINTI'] || '-').toUpperCase();
             
-            const rawFoto = data['Kirim Pas Foto Ukuran PostCard'] || '';
+            const rawFoto = data['Foto'] || '';
             const FOTO_URL = getDirectDriveUrl(rawFoto);
 
-            // --- STRUKTUR HTML BARU (Foto Kiri, Identitas Kanan) ---
+            // --- STRUKTUR HTML ---
             card.innerHTML = `
                 <div class="foto-area">
                      <img src="${FOTO_URL}" 
